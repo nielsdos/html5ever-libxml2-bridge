@@ -4,21 +4,25 @@ use std::collections::HashMap;
 use std::ffi::CString;
 use std::ptr::null;
 
-use crate::libxml2::{_xmlNode, htmlSaveFile, xmlAddChild, xmlAddPrevSibling, xmlCreateIntSubset, xmlNewDoc, xmlNewDocComment, xmlNewDocNode, xmlNewDocProp, xmlNewDocText, xmlNewPI, xmlUnlinkNode};
+use crate::libxml2::{_xmlNode, htmlSaveFile, xmlAddChild, xmlAddPrevSibling, xmlCreateIntSubset, xmlNewDoc, xmlNewDocComment, xmlNewDocFragment, xmlNewDocNode, xmlNewDocProp, xmlNewDocText, xmlNewPI, xmlUnlinkNode};
 use html5ever::tendril::*;
 use html5ever::tree_builder::{ElementFlags, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, QualName};
 
 pub struct Sink {
     names: HashMap<Handle, QualName>,
+    template_to_contents: HashMap<Handle, Handle>,
     doc: Handle,
+    current_line: u64,
 }
 
 impl Sink {
     pub fn new() -> Self {
         Self {
             names: HashMap::new(),
+            template_to_contents: HashMap::new(),
             doc: Handle(unsafe { xmlNewDoc(b"1.0\0".as_ptr()) }),
+            current_line: 0,
         }
     }
 
@@ -72,7 +76,7 @@ impl TreeSink for Sink {
     }
 
     fn parse_error(&mut self, msg: Cow<'static, str>) {
-        println!("{:?}", msg);
+        println!("line {} {:?}", self.current_line, msg);
     }
 
     fn get_document(&mut self) -> Handle {
@@ -90,14 +94,23 @@ impl TreeSink for Sink {
         &mut self,
         name: QualName,
         attributes: Vec<Attribute>,
-        _: ElementFlags,
+        flags: ElementFlags,
     ) -> Handle {
         // TODO: also take into account other parts of the name
         let str = self.convert_string_to_c_string(name.local.as_bytes());
-        let raw = unsafe { xmlNewDocNode(self.doc.as_raw(), null(), str.as_ptr() as _, null()) };
-        let handle = Handle(raw);
+        let handle = {
+            let raw = unsafe { xmlNewDocNode(self.doc.as_raw(), null(), str.as_ptr() as _, null()) };
+            Handle(raw)
+        };
         self.add_attributes(handle, &attributes);
         self.names.insert(handle, name);
+        if flags.template {
+            let contents_handle = {
+                let raw = unsafe { xmlNewDocFragment(self.doc.as_raw()) };
+                Handle(raw)
+            };
+            self.template_to_contents.insert(handle, contents_handle);
+        }
         handle
     }
 
@@ -115,12 +128,14 @@ impl TreeSink for Sink {
     }
 
     fn append(&mut self, parent: &Handle, child: NodeOrText<Handle>) {
-        match &child {
-            NodeOrText::AppendNode(child) => {
-                println!("append node {:?} to {:?}", child, parent);
-            }
-            NodeOrText::AppendText(text) => {
-                println!("append text {:?} to {:?}", text, parent);
+        if false {
+            match &child {
+                NodeOrText::AppendNode(child) => {
+                    println!("append node {:?} to {:?}", child, parent);
+                }
+                NodeOrText::AppendText(text) => {
+                    println!("append text {:?} to {:?}", text, parent);
+                }
             }
         }
 
@@ -178,13 +193,7 @@ impl TreeSink for Sink {
     }
 
     fn get_template_contents(&mut self, target: &Handle) -> Handle {
-        if let Some(expanded_name!(html "template")) = self.names.get(target).map(|n| n.expanded())
-        {
-            // TODO
-            unimplemented!();
-        } else {
-            panic!("not a template element, parser promise broken")
-        }
+        *self.template_to_contents.get(target).expect("must be a template, parser promise broken")
     }
 
     fn same_node(&self, x: &Handle, y: &Handle) -> bool {
@@ -224,5 +233,9 @@ impl TreeSink for Sink {
                 cur = next;
             }
         }
+    }
+
+    fn set_current_line(&mut self, line_number: u64) {
+        self.current_line = line_number;
     }
 }

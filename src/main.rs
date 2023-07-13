@@ -10,7 +10,6 @@ pub mod handle;
 pub mod libxml2;
 pub mod sink;
 
-#[macro_use]
 extern crate html5ever;
 
 use std::default::Default;

@@ -25,6 +25,7 @@ extern "C" {
         name: *const u8,
         content: *const u8,
     ) -> *mut libc::c_void;
+    pub fn xmlNewDocFragment(doc: *mut libc::c_void) -> *mut libc::c_void;
 
     // Tree manipulation
     pub fn xmlAddChild(parent: *mut libc::c_void, child: *mut libc::c_void) -> *mut libc::c_void;
