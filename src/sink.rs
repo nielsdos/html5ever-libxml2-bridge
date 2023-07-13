@@ -212,7 +212,16 @@ impl TreeSink for Sink {
         }
     }
 
-    fn reparent_children(&mut self, _node: &Handle, _new_parent: &Handle) {
-        println!("reparent");
+    fn reparent_children(&mut self, node: &Handle, new_parent: &Handle) {
+        unsafe {
+            let node = node.as_raw() as *const _xmlNode;
+            let mut cur = (*node).children;
+            while cur != null() {
+                let next = (*cur).next;
+                xmlUnlinkNode(cur as _);
+                xmlAddChild(new_parent.as_raw(), cur as _);
+                cur = next;
+            }
+        }
     }
 }
