@@ -20,6 +20,7 @@ use html5ever::interface::QuirksMode;
 use html5ever::tendril::TendrilSink;
 use html5ever::tree_builder::TreeBuilderOpts;
 use html5ever::{parse_document, ParseOpts};
+use html5ever::tokenizer::TokenizerOpts;
 
 fn main() {
     let sink = Sink::new();
@@ -27,7 +28,13 @@ fn main() {
     parse_document(
         sink,
         ParseOpts {
-            tokenizer: Default::default(),
+            tokenizer: TokenizerOpts {
+                exact_errors: true,
+                discard_bom: false,
+                profile: false,
+                initial_state: None,
+                last_start_tag_name: None,
+            },
             tree_builder: TreeBuilderOpts {
                 exact_errors: true,
                 scripting_enabled: false,
