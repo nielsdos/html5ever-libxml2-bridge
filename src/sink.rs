@@ -54,7 +54,8 @@ impl Sink {
             // TODO: also take into account other parts of the name
             let name = self.convert_string_to_c_string(attribute.name.local.as_bytes());
             let value = self.convert_string_to_c_string(attribute.value.as_bytes());
-            // TODO: should use xmlSetProp to handle the encoding & double attributes correctly?
+            println!("{:?}", name);
+            // TODO: should use xmlSetProp to handle double attributes correctly?
             let raw_attribute = unsafe {
                 // SAFETY: doc is alive and non-NULL, name and value are valid and non-NULL
                 xmlNewDocProp(self.doc.as_raw(), name.as_ptr() as _, value.as_ptr() as _)
@@ -182,7 +183,6 @@ impl TreeSink for Sink {
         let public_id = self.convert_string_to_c_string(public_id.as_bytes());
         let system_id = self.convert_string_to_c_string(system_id.as_bytes());
         if public_id.is_empty() && system_id.is_empty() {
-            // TODO: what if only one of the two is empty?
             unsafe {
                 // SAFETY: doc is alive and non-NULL, name is valid and non-NULL
                 xmlCreateIntSubset(self.doc.as_raw(), name.as_ptr() as _, null(), null());
