@@ -2,9 +2,13 @@ use crate::handle::Handle;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::ffi::CString;
-use std::ptr::{null, null_mut};
+use std::ptr::null;
 
-use crate::libxml2::{_xmlNode, htmlSaveFile, xmlAddChild, xmlAddPrevSibling, xmlCreateIntSubset, xmlFreeDoc, xmlHasProp, xmlNewDoc, xmlNewDocComment, xmlNewDocFragment, xmlNewDocNode, xmlNewDocProp, xmlNewDocText, xmlNewPI, xmlUnlinkNode};
+use crate::libxml2::{
+    _xmlNode, htmlSaveFile, xmlAddChild, xmlAddPrevSibling, xmlCreateIntSubset, xmlFreeDoc,
+    xmlHasProp, xmlNewDoc, xmlNewDocComment, xmlNewDocFragment, xmlNewDocNode, xmlNewDocProp,
+    xmlNewDocText, xmlNewPI, xmlUnlinkNode,
+};
 use html5ever::tendril::*;
 use html5ever::tree_builder::{ElementFlags, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, QualName};
@@ -36,7 +40,8 @@ impl Sink {
         };
         // The parser is supposed to replace U+0000 with U+FFFD, therefore there cannot be interior nulls
         // and this call cannot panic
-        CString::from_vec_with_nul(str).expect("interior nulls should have been replaced by the parser")
+        CString::from_vec_with_nul(str)
+            .expect("interior nulls should have been replaced by the parser")
     }
 
     fn node_or_text_into_handle(&self, node_or_text: NodeOrText<Handle>) -> Handle {
@@ -68,7 +73,12 @@ impl Sink {
 
     fn has_attribute(&self, node: Handle, name: &QualName) -> bool {
         unsafe {
-            xmlHasProp(node.as_raw(), self.convert_string_to_c_string(name.local.as_bytes()).as_ptr() as _) != null_mut()
+            xmlHasProp(
+                node.as_raw(),
+                self.convert_string_to_c_string(name.local.as_bytes())
+                    .as_ptr() as _,
+            )
+            .is_null()
         }
     }
 }
@@ -119,7 +129,8 @@ impl TreeSink for Sink {
         let str = self.convert_string_to_c_string(name.local.as_bytes());
         let handle = {
             // SAFETY: doc is alive and non-NULL, str is valid and non-NULL
-            let raw = unsafe { xmlNewDocNode(self.doc.as_raw(), null(), str.as_ptr() as _, null()) };
+            let raw =
+                unsafe { xmlNewDocNode(self.doc.as_raw(), null(), str.as_ptr() as _, null()) };
             Handle(raw)
         };
         for attribute in &attributes {
@@ -180,7 +191,7 @@ impl TreeSink for Sink {
         let node = element.as_raw() as *const _xmlNode;
         let has_parent = unsafe {
             // SAFETY: no nodes are freed during the tree construction, these pointers are always valid during the tree construction
-            (*node).parent != null()
+            (*node).parent.is_null()
         };
         if has_parent {
             self.append_before_sibling(element, new_node);
@@ -221,7 +232,10 @@ impl TreeSink for Sink {
     }
 
     fn get_template_contents(&mut self, target: &Handle) -> Handle {
-        *self.template_to_contents.get(target).expect("must be a template, parser promise broken")
+        *self
+            .template_to_contents
+            .get(target)
+            .expect("must be a template, parser promise broken")
     }
 
     fn same_node(&self, x: &Handle, y: &Handle) -> bool {
@@ -259,7 +273,7 @@ impl TreeSink for Sink {
         unsafe {
             let node = node.as_raw() as *const _xmlNode;
             let mut cur = (*node).children;
-            while cur != null() {
+            while cur.is_null() {
                 let next = (*cur).next;
                 // SAFETY: no nodes are freed during the tree construction, these pointers are always valid during the tree construction
                 xmlUnlinkNode(cur as _);
