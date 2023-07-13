@@ -21,6 +21,7 @@ impl Sink {
         Self {
             names: HashMap::new(),
             template_to_contents: HashMap::new(),
+            // SAFETY: xmlNewDoc's arguments are valid and non-NULL, returns a unique pointer
             doc: Handle(unsafe { xmlNewDoc(b"1.0\0".as_ptr()) }),
             current_line: 0,
         }
@@ -55,9 +56,11 @@ impl Sink {
             let value = self.convert_string_to_c_string(attribute.value.as_bytes());
             // TODO: should use xmlSetProp to handle the encoding & double attributes correctly?
             let raw_attribute = unsafe {
+                // SAFETY: doc is alive and non-NULL, name and value are valid and non-NULL
                 xmlNewDocProp(self.doc.as_raw(), name.as_ptr() as _, value.as_ptr() as _)
             };
             unsafe {
+                // SAFETY: to is alive and non-NULL, raw_attribute is uniquely created above
                 xmlAddChild(to.as_raw(), raw_attribute);
             }
         }
@@ -70,6 +73,7 @@ impl TreeSink for Sink {
 
     fn finish(self) -> Self {
         unsafe {
+            // SAFETY: filename is valid, doc is alive and non-NULL
             htmlSaveFile(b"output.html\0".as_ptr(), self.doc.as_raw());
         }
         self
@@ -99,6 +103,7 @@ impl TreeSink for Sink {
         // TODO: also take into account other parts of the name
         let str = self.convert_string_to_c_string(name.local.as_bytes());
         let handle = {
+            // SAFETY: doc is alive and non-NULL, str is valid and non-NULL
             let raw = unsafe { xmlNewDocNode(self.doc.as_raw(), null(), str.as_ptr() as _, null()) };
             Handle(raw)
         };
@@ -106,6 +111,7 @@ impl TreeSink for Sink {
         self.names.insert(handle, name);
         if flags.template {
             let contents_handle = {
+                // SAFETY: doc is alive and non-NULL
                 let raw = unsafe { xmlNewDocFragment(self.doc.as_raw()) };
                 Handle(raw)
             };
@@ -116,6 +122,7 @@ impl TreeSink for Sink {
 
     fn create_comment(&mut self, text: StrTendril) -> Handle {
         let str = self.convert_string_to_c_string(text.as_bytes());
+        // SAFETY: doc is alive and non-NULL, str is valid and non-NULL
         let raw = unsafe { xmlNewDocComment(self.doc.as_raw(), str.as_ptr() as _) };
         Handle(raw)
     }
@@ -123,6 +130,7 @@ impl TreeSink for Sink {
     fn create_pi(&mut self, target: StrTendril, value: StrTendril) -> Handle {
         let target = self.convert_string_to_c_string(target.as_bytes());
         let value = self.convert_string_to_c_string(value.as_bytes());
+        // SAFETY: doc is alive and non-NULL, both target and value are valid and non-NULL
         let raw = unsafe { xmlNewPI(self.doc.as_raw(), target.as_ptr() as _, value.as_ptr() as _) };
         Handle(raw)
     }
@@ -141,6 +149,7 @@ impl TreeSink for Sink {
 
         let child = self.node_or_text_into_handle(child);
         unsafe {
+            // SAFETY: no nodes are freed during the tree construction, these pointers are always valid
             xmlAddChild(parent.as_raw(), child.as_raw());
         }
     }
@@ -153,6 +162,7 @@ impl TreeSink for Sink {
     ) {
         let node = element.as_raw() as *const _xmlNode;
         let has_parent = unsafe {
+            // SAFETY: no nodes are freed during the tree construction, these pointers are always valid during the tree construction
             (*node).parent != null()
         };
         if has_parent {
@@ -174,10 +184,12 @@ impl TreeSink for Sink {
         if public_id.is_empty() && system_id.is_empty() {
             // TODO: what if only one of the two is empty?
             unsafe {
+                // SAFETY: doc is alive and non-NULL, name is valid and non-NULL
                 xmlCreateIntSubset(self.doc.as_raw(), name.as_ptr() as _, null(), null());
             }
         } else {
             unsafe {
+                // SAFETY: doc is alive and non-NULL, the passed strings are valid and non-NULL
                 xmlCreateIntSubset(
                     self.doc.as_raw(),
                     name.as_ptr() as _,
@@ -207,6 +219,7 @@ impl TreeSink for Sink {
     fn append_before_sibling(&mut self, sibling: &Handle, new_node: NodeOrText<Handle>) {
         let new_node = self.node_or_text_into_handle(new_node);
         unsafe {
+            // SAFETY: no nodes are freed during the tree construction, these pointers are always valid during the tree construction
             xmlAddPrevSibling(sibling.as_raw(), new_node.as_raw());
         }
     }
@@ -218,6 +231,7 @@ impl TreeSink for Sink {
 
     fn remove_from_parent(&mut self, target: &Handle) {
         unsafe {
+            // SAFETY: no nodes are freed during the tree construction, these pointers are always valid during the tree construction
             xmlUnlinkNode(target.as_raw());
         }
     }
@@ -228,6 +242,7 @@ impl TreeSink for Sink {
             let mut cur = (*node).children;
             while cur != null() {
                 let next = (*cur).next;
+                // SAFETY: no nodes are freed during the tree construction, these pointers are always valid during the tree construction
                 xmlUnlinkNode(cur as _);
                 xmlAddChild(new_parent.as_raw(), cur as _);
                 cur = next;
