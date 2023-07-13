@@ -34,8 +34,9 @@ impl Sink {
             str.push(0);
             str
         };
-        // TODO: will error with interior null bytes
-        CString::from_vec_with_nul(str).unwrap()
+        // The parser is supposed to replace U+0000 with U+FFFD, therefore there cannot be interior nulls
+        // and this call cannot panic
+        CString::from_vec_with_nul(str).expect("interior nulls should have been replaced by the parser")
     }
 
     fn node_or_text_into_handle(&self, node_or_text: NodeOrText<Handle>) -> Handle {
