@@ -33,6 +33,9 @@ extern "C" {
     pub fn xmlUnlinkNode(node: *mut libc::c_void);
     pub fn xmlHasProp(node: *mut libc::c_void, name: *const u8) -> *mut libc::c_void;
 
+    // Memory management
+    pub fn xmlFreeDoc(doc: *mut libc::c_void);
+
     // Output
     pub fn htmlSaveFile(filename: *const u8, doc: *mut libc::c_void) -> libc::c_int;
 }

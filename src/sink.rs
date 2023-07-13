@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::ffi::CString;
 use std::ptr::{null, null_mut};
 
-use crate::libxml2::{_xmlNode, htmlSaveFile, xmlAddChild, xmlAddPrevSibling, xmlCreateIntSubset, xmlHasProp, xmlNewDoc, xmlNewDocComment, xmlNewDocFragment, xmlNewDocNode, xmlNewDocProp, xmlNewDocText, xmlNewPI, xmlUnlinkNode};
+use crate::libxml2::{_xmlNode, htmlSaveFile, xmlAddChild, xmlAddPrevSibling, xmlCreateIntSubset, xmlFreeDoc, xmlHasProp, xmlNewDoc, xmlNewDocComment, xmlNewDocFragment, xmlNewDocNode, xmlNewDocProp, xmlNewDocText, xmlNewPI, xmlUnlinkNode};
 use html5ever::tendril::*;
 use html5ever::tree_builder::{ElementFlags, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, QualName};
@@ -68,6 +68,15 @@ impl Sink {
     fn has_attribute(&self, node: Handle, name: &QualName) -> bool {
         unsafe {
             xmlHasProp(node.as_raw(), self.convert_string_to_c_string(name.local.as_bytes()).as_ptr() as _) != null_mut()
+        }
+    }
+}
+
+impl Drop for Sink {
+    fn drop(&mut self) {
+        unsafe {
+            // SAFETY: doc is alive and non-NULL, only dropped once
+            xmlFreeDoc(self.doc.as_raw());
         }
     }
 }
