@@ -29,6 +29,7 @@ impl Sink {
             str.push(0);
             str
         };
+        // TODO: will error with interior null bytes
         CString::from_vec_with_nul(str).unwrap()
     }
 
