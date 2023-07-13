@@ -31,6 +31,7 @@ extern "C" {
     pub fn xmlAddChild(parent: *mut libc::c_void, child: *mut libc::c_void) -> *mut libc::c_void;
     pub fn xmlAddPrevSibling(cur: *mut libc::c_void, elem: *mut libc::c_void) -> *mut libc::c_void;
     pub fn xmlUnlinkNode(node: *mut libc::c_void);
+    pub fn xmlHasProp(node: *mut libc::c_void, name: *const u8) -> *mut libc::c_void;
 
     // Output
     pub fn htmlSaveFile(filename: *const u8, doc: *mut libc::c_void) -> libc::c_int;

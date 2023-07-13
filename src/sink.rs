@@ -2,9 +2,9 @@ use crate::handle::Handle;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::ffi::CString;
-use std::ptr::null;
+use std::ptr::{null, null_mut};
 
-use crate::libxml2::{_xmlNode, htmlSaveFile, xmlAddChild, xmlAddPrevSibling, xmlCreateIntSubset, xmlNewDoc, xmlNewDocComment, xmlNewDocFragment, xmlNewDocNode, xmlNewDocProp, xmlNewDocText, xmlNewPI, xmlUnlinkNode};
+use crate::libxml2::{_xmlNode, htmlSaveFile, xmlAddChild, xmlAddPrevSibling, xmlCreateIntSubset, xmlHasProp, xmlNewDoc, xmlNewDocComment, xmlNewDocFragment, xmlNewDocNode, xmlNewDocProp, xmlNewDocText, xmlNewPI, xmlUnlinkNode};
 use html5ever::tendril::*;
 use html5ever::tree_builder::{ElementFlags, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, QualName};
@@ -49,21 +49,25 @@ impl Sink {
         }
     }
 
-    fn add_attributes(&mut self, to: Handle, attributes: &[Attribute]) {
-        for attribute in attributes {
-            // TODO: also take into account other parts of the name
-            let name = self.convert_string_to_c_string(attribute.name.local.as_bytes());
-            let value = self.convert_string_to_c_string(attribute.value.as_bytes());
-            println!("{:?}", name);
-            // TODO: should use xmlSetProp to handle double attributes correctly?
-            let raw_attribute = unsafe {
-                // SAFETY: doc is alive and non-NULL, name and value are valid and non-NULL
-                xmlNewDocProp(self.doc.as_raw(), name.as_ptr() as _, value.as_ptr() as _)
-            };
-            unsafe {
-                // SAFETY: to is alive and non-NULL, raw_attribute is uniquely created above
-                xmlAddChild(to.as_raw(), raw_attribute);
-            }
+    fn add_attribute(&mut self, to: Handle, attribute: &Attribute) {
+        // TODO: also take into account other parts of the name
+        let name = self.convert_string_to_c_string(attribute.name.local.as_bytes());
+        let value = self.convert_string_to_c_string(attribute.value.as_bytes());
+        println!("{:?}", name);
+        // TODO: should use xmlSetProp to handle double attributes correctly?
+        let raw_attribute = unsafe {
+            // SAFETY: doc is alive and non-NULL, name and value are valid and non-NULL
+            xmlNewDocProp(self.doc.as_raw(), name.as_ptr() as _, value.as_ptr() as _)
+        };
+        unsafe {
+            // SAFETY: to is alive and non-NULL, raw_attribute is uniquely created above
+            xmlAddChild(to.as_raw(), raw_attribute);
+        }
+    }
+
+    fn has_attribute(&self, node: Handle, name: &QualName) -> bool {
+        unsafe {
+            xmlHasProp(node.as_raw(), self.convert_string_to_c_string(name.local.as_bytes()).as_ptr() as _) != null_mut()
         }
     }
 }
@@ -108,7 +112,9 @@ impl TreeSink for Sink {
             let raw = unsafe { xmlNewDocNode(self.doc.as_raw(), null(), str.as_ptr() as _, null()) };
             Handle(raw)
         };
-        self.add_attributes(handle, &attributes);
+        for attribute in &attributes {
+            self.add_attribute(handle, attribute);
+        }
         self.names.insert(handle, name);
         if flags.template {
             let contents_handle = {
@@ -225,8 +231,11 @@ impl TreeSink for Sink {
     }
 
     fn add_attrs_if_missing(&mut self, target: &Handle, attributes: Vec<Attribute>) {
-        // TODO: not really right atm
-        self.add_attributes(*target, &attributes);
+        for attribute in &attributes {
+            if !self.has_attribute(*target, &attribute.name) {
+                self.add_attribute(*target, attribute);
+            }
+        }
     }
 
     fn remove_from_parent(&mut self, target: &Handle) {
