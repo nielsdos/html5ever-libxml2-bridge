@@ -34,3 +34,23 @@ extern "C" {
     // Output
     pub fn htmlSaveFile(filename: *const u8, doc: *mut libc::c_void) -> libc::c_int;
 }
+
+#[repr(C)]
+#[allow(non_snake_case)]
+pub struct _xmlNode {
+    pub _private: *const libc::c_void,
+    pub element_type: libc::c_int,
+    pub children: *const libc::c_void,
+    pub last: *const libc::c_void,
+    pub parent: *const libc::c_void,
+    pub next: *const libc::c_void,
+    pub prev: *const libc::c_void,
+    pub doc: *const libc::c_void,
+    pub ns: *const libc::c_void,
+    pub content: *const libc::__u8,
+    pub properties: *const libc::c_void,
+    pub nsDef: *const libc::c_void,
+    pub psvi: *const libc::c_void,
+    pub line: *const libc::c_ushort,
+    pub extra: *const libc::c_ushort,
+}

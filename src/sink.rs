@@ -4,10 +4,7 @@ use std::collections::HashMap;
 use std::ffi::CString;
 use std::ptr::null;
 
-use crate::libxml2::{
-    htmlSaveFile, xmlAddChild, xmlAddPrevSibling, xmlCreateIntSubset, xmlNewDoc, xmlNewDocComment,
-    xmlNewDocNode, xmlNewDocProp, xmlNewDocText, xmlNewPI, xmlUnlinkNode,
-};
+use crate::libxml2::{_xmlNode, htmlSaveFile, xmlAddChild, xmlAddPrevSibling, xmlCreateIntSubset, xmlNewDoc, xmlNewDocComment, xmlNewDocNode, xmlNewDocProp, xmlNewDocText, xmlNewPI, xmlUnlinkNode};
 use html5ever::tendril::*;
 use html5ever::tree_builder::{ElementFlags, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, QualName};
@@ -134,11 +131,19 @@ impl TreeSink for Sink {
 
     fn append_based_on_parent_node(
         &mut self,
-        _element: &Handle,
-        _prev_element: &Handle,
-        _new_node: NodeOrText<Handle>,
+        element: &Handle,
+        prev_element: &Handle,
+        new_node: NodeOrText<Handle>,
     ) {
-        unimplemented!()
+        let node = element.as_raw() as *const _xmlNode;
+        let has_parent = unsafe {
+            (*node).parent != null()
+        };
+        if has_parent {
+            self.append_before_sibling(element, new_node);
+        } else {
+            self.append(prev_element, new_node);
+        }
     }
 
     fn append_doctype_to_document(
