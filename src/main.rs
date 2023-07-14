@@ -11,16 +11,14 @@ pub mod sink;
 
 extern crate html5ever;
 
-use std::default::Default;
-
 use std::io;
 
 use crate::sink::Sink;
 use html5ever::interface::QuirksMode;
 use html5ever::tendril::TendrilSink;
+use html5ever::tokenizer::TokenizerOpts;
 use html5ever::tree_builder::TreeBuilderOpts;
 use html5ever::{parse_document, ParseOpts};
-use html5ever::tokenizer::TokenizerOpts;
 
 fn main() {
     let sink = Sink::new();

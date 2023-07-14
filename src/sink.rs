@@ -1,6 +1,6 @@
 use crate::handle::Handle;
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::ptr::null;
 
@@ -16,6 +16,7 @@ use html5ever::{Attribute, ExpandedName, QualName};
 pub struct Sink {
     names: HashMap<Handle, QualName>,
     template_to_contents: HashMap<Handle, Handle>,
+    mathml_annotation_xml_integration_points: HashSet<Handle>,
     doc: Handle,
     current_line: u64,
 }
@@ -23,11 +24,12 @@ pub struct Sink {
 impl Sink {
     pub fn new() -> Self {
         Self {
-            names: HashMap::new(),
-            template_to_contents: HashMap::new(),
+            names: Default::default(),
+            template_to_contents: Default::default(),
             // SAFETY: xmlNewDoc's arguments are valid and non-NULL, returns a unique pointer
+            mathml_annotation_xml_integration_points: Default::default(),
             doc: Handle(unsafe { xmlNewDoc(b"1.0\0".as_ptr()) }),
-            current_line: 0,
+            current_line: 1,
         }
     }
 
@@ -145,6 +147,9 @@ impl TreeSink for Sink {
             };
             self.template_to_contents.insert(handle, contents_handle);
         }
+        if flags.mathml_annotation_xml_integration_point {
+            self.mathml_annotation_xml_integration_points.insert(handle);
+        }
         handle
     }
 
@@ -227,10 +232,6 @@ impl TreeSink for Sink {
         }
     }
 
-    fn mark_script_already_started(&mut self, _node: &Handle) {
-        // No script support, nothing to do here
-    }
-
     fn get_template_contents(&mut self, target: &Handle) -> Handle {
         *self
             .template_to_contents
@@ -242,8 +243,8 @@ impl TreeSink for Sink {
         x == y
     }
 
-    fn set_quirks_mode(&mut self, _mode: QuirksMode) {
-        // No layouting is done, nothing to do here
+    fn set_quirks_mode(&mut self, _: QuirksMode) {
+        // We don't do layouting, so nothing to do here
     }
 
     fn append_before_sibling(&mut self, sibling: &Handle, new_node: NodeOrText<Handle>) {
@@ -281,6 +282,11 @@ impl TreeSink for Sink {
                 cur = next;
             }
         }
+    }
+
+    fn is_mathml_annotation_xml_integration_point(&self, handle: &Handle) -> bool {
+        self.mathml_annotation_xml_integration_points
+            .contains(handle)
     }
 
     fn set_current_line(&mut self, line_number: u64) {
