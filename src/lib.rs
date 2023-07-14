@@ -11,7 +11,7 @@ pub mod sink;
 
 extern crate html5ever;
 
-use std::io;
+use std::io::Cursor;
 
 use crate::sink::Sink;
 use html5ever::interface::QuirksMode;
@@ -20,10 +20,9 @@ use html5ever::tokenizer::TokenizerOpts;
 use html5ever::tree_builder::TreeBuilderOpts;
 use html5ever::{parse_document, ParseOpts};
 
-fn main() {
+fn parse_from_bytes(bytes: &[u8]) {
     let sink = Sink::new();
-    let stdin = io::stdin();
-    parse_document(
+    let sink = parse_document(
         sink,
         ParseOpts {
             tokenizer: TokenizerOpts {
@@ -44,6 +43,13 @@ fn main() {
         },
     )
     .from_utf8()
-    .read_from(&mut stdin.lock())
+    .read_from(&mut Cursor::new(bytes))
     .unwrap();
+    println!("done");
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn html5ever_libxml2_bridge_parse_from_bytes(bytes: *const u8, len: usize) {
+    let bytes = std::slice::from_raw_parts(bytes, len);
+    parse_from_bytes(bytes);
 }

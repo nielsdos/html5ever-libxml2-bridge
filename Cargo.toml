@@ -4,6 +4,11 @@ version = "0.1.0"
 edition = "2021"
 build = "build.rs"
 
+[lib]
+name = "html5parser"
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
 [features]
 debuglogging = []
 
