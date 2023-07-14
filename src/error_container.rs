@@ -37,7 +37,7 @@ impl ErrorContainer {
 }
 
 impl Error {
-    pub unsafe fn as_c_error(&self) -> CError {
+    pub fn as_c_error(&self) -> CError {
         CError {
             line: self.line as _,
             msg_len: self.msg.len() as _,

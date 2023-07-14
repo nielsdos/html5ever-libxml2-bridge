@@ -53,10 +53,10 @@ fn parse_from_bytes(bytes: &[u8]) -> Sink {
 
 #[no_mangle]
 pub unsafe extern "C" fn html5ever_libxml2_bridge_parse_from_bytes(bytes: *const libc::__u8, len: libc::size_t) -> *mut ParseResult {
-    let bytes = std::slice::from_raw_parts(bytes.into(), len.into());
+    let bytes = std::slice::from_raw_parts(bytes, len);
     let sink = parse_from_bytes(bytes);
     let parse_result = Box::new(sink.into_parse_result());
-    Box::into_raw(parse_result).into()
+    Box::into_raw(parse_result)
 }
 
 #[no_mangle]
@@ -66,7 +66,7 @@ pub unsafe extern "C" fn html5ever_libxml2_bridge_get_doc(parse_result: *const P
 
 #[no_mangle]
 pub unsafe extern "C" fn html5ever_libxml2_bridge_count_errors(parse_result: *const ParseResult) -> libc::size_t {
-    (*parse_result).error_container.count().into()
+    (*parse_result).error_container.count()
 }
 
 #[no_mangle]
