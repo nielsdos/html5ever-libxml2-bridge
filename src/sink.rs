@@ -2,7 +2,7 @@ use crate::handle::Handle;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
-use std::ptr::null;
+use std::ptr::{null, null_mut};
 
 use crate::libxml2::{
     _xmlNode, htmlSaveFile, xmlAddChild, xmlAddPrevSibling, xmlCreateIntSubset, xmlFreeDoc,
@@ -83,13 +83,21 @@ impl Sink {
             .is_null()
         }
     }
+
+    pub fn into_document(mut self) -> Handle {
+        let doc = self.doc;
+        self.doc = Handle(null_mut());
+        doc
+    }
 }
 
 impl Drop for Sink {
     fn drop(&mut self) {
         unsafe {
-            // SAFETY: doc is alive and non-NULL, only dropped once
-            xmlFreeDoc(self.doc.as_raw());
+            if !self.doc.as_raw().is_null() {
+                // SAFETY: doc is alive and non-NULL, only dropped once
+                xmlFreeDoc(self.doc.as_raw());
+            }
         }
     }
 }

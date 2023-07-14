@@ -20,9 +20,9 @@ use html5ever::tokenizer::TokenizerOpts;
 use html5ever::tree_builder::TreeBuilderOpts;
 use html5ever::{parse_document, ParseOpts};
 
-fn parse_from_bytes(bytes: &[u8]) {
+fn parse_from_bytes(bytes: &[u8]) -> Sink {
     let sink = Sink::new();
-    let sink = parse_document(
+    parse_document(
         sink,
         ParseOpts {
             tokenizer: TokenizerOpts {
@@ -44,12 +44,12 @@ fn parse_from_bytes(bytes: &[u8]) {
     )
     .from_utf8()
     .read_from(&mut Cursor::new(bytes))
-    .unwrap();
-    println!("done");
+    .unwrap() // TODO?
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn html5ever_libxml2_bridge_parse_from_bytes(bytes: *const u8, len: usize) {
+pub unsafe extern "C" fn html5ever_libxml2_bridge_parse_from_bytes(bytes: *const u8, len: usize) -> *mut libc::c_void {
     let bytes = std::slice::from_raw_parts(bytes, len);
-    parse_from_bytes(bytes);
+    let sink = parse_from_bytes(bytes);
+    sink.into_document().as_raw()
 }
