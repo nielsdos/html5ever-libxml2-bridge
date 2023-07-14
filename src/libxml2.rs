@@ -1,29 +1,29 @@
 extern "C" {
     // Node creation
-    pub fn xmlNewDoc(version: *const u8) -> *mut libc::c_void;
+    pub fn xmlNewDoc(version: *const libc::__u8) -> *mut libc::c_void;
     pub fn xmlNewDocNode(
         doc: *mut libc::c_void,
-        ns: *const u8,
-        name: *const u8,
-        content: *const u8,
+        ns: *const libc::__u8,
+        name: *const libc::__u8,
+        content: *const libc::__u8,
     ) -> *mut libc::c_void;
-    pub fn xmlNewDocText(doc: *mut libc::c_void, content: *const u8) -> *mut libc::c_void;
-    pub fn xmlNewDocComment(doc: *mut libc::c_void, content: *const u8) -> *mut libc::c_void;
+    pub fn xmlNewDocText(doc: *mut libc::c_void, content: *const libc::__u8) -> *mut libc::c_void;
+    pub fn xmlNewDocComment(doc: *mut libc::c_void, content: *const libc::__u8) -> *mut libc::c_void;
     pub fn xmlCreateIntSubset(
         doc: *mut libc::c_void,
-        name: *const u8,
-        external_id: *const u8,
-        system_id: *const u8,
+        name: *const libc::__u8,
+        external_id: *const libc::__u8,
+        system_id: *const libc::__u8,
     ) -> *mut libc::c_void;
     pub fn xmlNewDocProp(
         doc: *mut libc::c_void,
-        name: *const u8,
-        value: *const u8,
+        name: *const libc::__u8,
+        value: *const libc::__u8,
     ) -> *mut libc::c_void;
     pub fn xmlNewPI(
         doc: *mut libc::c_void,
-        name: *const u8,
-        content: *const u8,
+        name: *const libc::__u8,
+        content: *const libc::__u8,
     ) -> *mut libc::c_void;
     pub fn xmlNewDocFragment(doc: *mut libc::c_void) -> *mut libc::c_void;
 
@@ -31,13 +31,10 @@ extern "C" {
     pub fn xmlAddChild(parent: *mut libc::c_void, child: *mut libc::c_void) -> *mut libc::c_void;
     pub fn xmlAddPrevSibling(cur: *mut libc::c_void, elem: *mut libc::c_void) -> *mut libc::c_void;
     pub fn xmlUnlinkNode(node: *mut libc::c_void);
-    pub fn xmlHasProp(node: *mut libc::c_void, name: *const u8) -> *mut libc::c_void;
+    pub fn xmlHasProp(node: *mut libc::c_void, name: *const libc::__u8) -> *mut libc::c_void;
 
     // Memory management
     pub fn xmlFreeDoc(doc: *mut libc::c_void);
-
-    // Output
-    pub fn htmlSaveFile(filename: *const u8, doc: *mut libc::c_void) -> libc::c_int;
 }
 
 #[repr(C)]

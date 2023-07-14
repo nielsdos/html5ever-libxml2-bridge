@@ -2,16 +2,25 @@ use crate::handle::Handle;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
+use std::mem;
 use std::ptr::{null, null_mut};
 
 use crate::libxml2::{
-    _xmlNode, htmlSaveFile, xmlAddChild, xmlAddPrevSibling, xmlCreateIntSubset, xmlFreeDoc,
+    _xmlNode, xmlAddChild, xmlAddPrevSibling, xmlCreateIntSubset, xmlFreeDoc,
     xmlHasProp, xmlNewDoc, xmlNewDocComment, xmlNewDocFragment, xmlNewDocNode, xmlNewDocProp,
     xmlNewDocText, xmlNewPI, xmlUnlinkNode,
 };
 use html5ever::tendril::*;
 use html5ever::tree_builder::{ElementFlags, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, QualName};
+use crate::error_container::ErrorContainer;
+use crate::parse_result::ParseResult;
+
+#[repr(C)]
+pub struct Error {
+    pub line: u64,
+    pub str: &'static [u8],
+}
 
 pub struct Sink {
     names: HashMap<Handle, QualName>,
@@ -19,6 +28,7 @@ pub struct Sink {
     mathml_annotation_xml_integration_points: HashSet<Handle>,
     doc: Handle,
     current_line: u64,
+    error_container: ErrorContainer,
 }
 
 impl Sink {
@@ -30,6 +40,7 @@ impl Sink {
             mathml_annotation_xml_integration_points: Default::default(),
             doc: Handle(unsafe { xmlNewDoc(b"1.0\0".as_ptr()) }),
             current_line: 1,
+            error_container: ErrorContainer::new(),
         }
     }
 
@@ -51,6 +62,7 @@ impl Sink {
             NodeOrText::AppendNode(handle) => handle,
             NodeOrText::AppendText(text) => {
                 let str = self.convert_string_to_c_string(text.as_bytes());
+                // SAFETY: doc is alive and non-NULL, str is valid and non-NULL
                 let raw = unsafe { xmlNewDocText(self.doc.as_raw(), str.as_ptr() as _) };
                 Handle(raw)
             }
@@ -84,10 +96,13 @@ impl Sink {
         }
     }
 
-    pub fn into_document(mut self) -> Handle {
+    pub fn into_parse_result(mut self) -> ParseResult {
         let doc = self.doc;
         self.doc = Handle(null_mut());
-        doc
+        ParseResult {
+            doc,
+            error_container: mem::replace(&mut self.error_container, ErrorContainer::new()),
+        }
     }
 }
 
@@ -107,15 +122,11 @@ impl TreeSink for Sink {
     type Output = Self;
 
     fn finish(self) -> Self {
-        unsafe {
-            // SAFETY: filename is valid, doc is alive and non-NULL
-            htmlSaveFile(b"output.html\0".as_ptr(), self.doc.as_raw());
-        }
         self
     }
 
     fn parse_error(&mut self, msg: Cow<'static, str>) {
-        println!("line {} {:?}", self.current_line, msg);
+        self.error_container.add(self.current_line, msg);
     }
 
     fn get_document(&mut self) -> Handle {
