@@ -1,11 +1,11 @@
 [package]
-name = "html5stuff"
+name = "html5ever-libxml2-bridge"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
 
 [lib]
-name = "html5parser"
+name = "html5everlibxml2bridge"
 crate-type = ["cdylib"]
 path = "src/lib.rs"
 

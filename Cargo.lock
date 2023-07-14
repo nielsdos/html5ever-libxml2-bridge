@@ -56,7 +56,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "html5stuff"
+name = "html5ever-libxml2-bridge"
 version = "0.1.0"
 dependencies = [
  "html5ever",
