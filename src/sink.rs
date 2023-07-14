@@ -169,7 +169,8 @@ impl TreeSink for Sink {
     }
 
     fn append(&mut self, parent: &Handle, child: NodeOrText<Handle>) {
-        if false {
+        #[cfg(feature="debuglogging")]
+        {
             match &child {
                 NodeOrText::AppendNode(child) => {
                     println!("append node {:?} to {:?}", child, parent);
