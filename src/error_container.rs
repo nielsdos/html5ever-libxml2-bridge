@@ -3,6 +3,7 @@ use std::borrow::Cow;
 #[repr(C)]
 pub struct CError {
     line: libc::size_t,
+    msg_len: libc::size_t,
     msg: *const libc::__u8,
 }
 
@@ -39,6 +40,7 @@ impl Error {
     pub unsafe fn as_c_error(&self) -> CError {
         CError {
             line: self.line as _,
+            msg_len: self.msg.len() as _,
             msg: self.msg.as_ptr(),
         }
     }
